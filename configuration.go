@@ -17,6 +17,8 @@ type Configuration struct {
 	DisableCompression    bool
 	ResponseHeaderTimeout time.Duration
 	MaxIdleConnsPerHost   int
+	UseSpnego             bool
+	Krb5KeyTabPath        string
 }
 
 func NewConfiguration() *Configuration {
@@ -25,6 +27,7 @@ func NewConfiguration() *Configuration {
 		DisableKeepAlives:     false,
 		DisableCompression:    true,
 		ResponseHeaderTimeout: time.Second * 17,
+		UseSpnego:             false,
 	}
 }
 
@@ -48,4 +51,8 @@ func (conf *Configuration) GetNameNodeUrl() (*url.URL, error) {
 	}
 
 	return u, nil
+}
+
+func (conf *Configuration) IsSpnegoEnabled() bool {
+	return conf.UseSpnego
 }

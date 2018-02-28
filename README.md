@@ -8,10 +8,10 @@ GoDoc documentation - https://godoc.org/github.com/vladimirvivien/gowfs
 
 ### Usage
 ```
-go get github.com/vladimirvivien/gowfs
+go get github.com/ekanth/gowfs
 ```
 ```go
-import github.com/vladimirvivien/gowfs
+import github.com/ekanth/gowfs
 ...
 fs, err := gowfs.NewFileSystem(gowfs.Configuration{Addr: "localhost:50070", User: "hdfs"})
 if err != nil{
@@ -24,6 +24,29 @@ if err != nil {
 fmt.Println (checksum)
 ```
 
+#### Use Kerberos/SPNEGO
+To enable kerberos/SPNEGO authentication with current user's tgt in cache (using kinit),
+```
+fs, err := gowfs.NewFileSystem(gowfs.Configuration{
+	Addr: "namenode:50070",
+	UseSpnego: true})
+```
+To enable kerberos/SPNEGO authentication with keytab,
+```
+fs, err := gowfs.NewFileSystem(gowfs.Configuration{
+	Addr: "namenode:50070",
+	UseSpnego: true,
+	Krb5KeyTabPath: "/path/to/keytab"})
+```
+By default, the current user will be used as the kerberos user. The User member of Configuration can be used to override the kerberos user.
+```
+fs, err := gowfs.NewFileSystem(gowfs.Configuration{
+	Addr: "namenode:50070",
+	User: "gowfsuser"
+	UseSpnego: true,
+	Krb5KeyTabPath: "/path/to/keytab"})
+```
+
 ### Run HDFS Test
 To see the API used, see directory `test-hdfs`. Compile and use that code to test against a running  HDFS deployment.  See https://github.com/vladimirvivien/gowfs/tree/master/test-hdfs.
 
@@ -33,18 +56,23 @@ To see the API used, see directory `test-hdfs`. Compile and use that code to tes
 
 
 ## API Overview
-gowfs lets you access HDFS resources via two structs `FileSystem` and `FsShell`.  Use FileSystem to get access to low level callse.  FsShell is designed to provide a higer level of abstraction and integration with the local file system.
+gowfs lets you access HDFS resources via two structs `FileSystem` and `FsShell`.  Use FileSystem to get access to low level calls.  FsShell is designed to provide a higher level of abstraction and integration with the local file system.
 
 ### FileSystem API 
 #### Configuration{} Struct
-Use the `Configuration{}` struct to specify paramters for the file system.  You can create configuration either using a `Configuration{}` literal or using `NewConfiguration()` for defaults. 
+Use the `Configuration{}` struct to specify parameters for the file system.  You can create configuration either using a `Configuration{}` literal or using `NewConfiguration()` for defaults.
 
 ```
 conf := *gowfs.NewConfiguration()
 conf.Addr = "localhost:50070"
 conf.User = "hdfs"
 conf.ConnectionTime = time.Second * 15
-conf.DisableKeepAlives = false 
+conf.DisableKeepAlives = false
+```
+For kerberos authentication, use the following configuration parameters.
+```
+conf.UseSpnego = true
+conf.Krb5KeyTabPath = "/path/to/keytab"
 ```
 
 #### FileSystem{} Struct
@@ -170,8 +198,7 @@ ok, err := shell.Chmod([]string{"/remote/hdfs/file/"}, 0744)
 
 ### Limitations
 1. Only "SIMPLE" security mode supported.
-2. No support for kerberos (none plan right now)
-3. No SSL support yet.
+2. No SSL support yet.
 
 ### References
 1. WebHDFS API - http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/WebHDFS.html

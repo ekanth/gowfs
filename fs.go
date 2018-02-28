@@ -5,11 +5,15 @@ See https://github.com/vladimirvivien/gowfs.
 */
 package gowfs
 
-import "encoding/json"
-import "net"
-import "net/http"
-import "net/url"
-import "io/ioutil"
+import (
+	"net"
+	"net/http"
+	"net/url"
+	"encoding/json"
+	"io/ioutil"
+	"github.com/ekanth/gowfs/spnego"
+	"github.com/ekanth/gowfs/proto"
+)
 
 const (
 	OP_OPEN                  = "OPEN"
@@ -42,7 +46,7 @@ func µ(v ...interface{}) []interface{} {
 // This type maps fields and functions to HDFS's FileSystem class.
 type FileSystem struct {
 	Config    Configuration
-	client    http.Client
+	client    proto.Client
 	transport *http.Transport
 }
 
@@ -62,9 +66,15 @@ func NewFileSystem(conf Configuration) (*FileSystem, error) {
 		MaxIdleConnsPerHost:   conf.MaxIdleConnsPerHost,
 		ResponseHeaderTimeout: conf.ResponseHeaderTimeout,
 	}
-	fs.client = http.Client{
-		Transport: fs.transport,
+
+	if conf.IsSpnegoEnabled() {
+		fs.client = spnego.NewSpnegoClient(conf.User, conf.Krb5KeyTabPath, fs.transport)
+	} else {
+		fs.client = &http.Client {
+			Transport: fs.transport,
+		}
 	}
+
 	return fs, nil
 }
 
@@ -125,7 +135,7 @@ func responseToHdfsData(rsp *http.Response) (HdfsJsonData, error) {
 	return makeHdfsData(body)
 }
 
-func requestHdfsData(client http.Client, req http.Request) (HdfsJsonData, error) {
+func requestHdfsData(client proto.Client, req http.Request) (HdfsJsonData, error) {
 	rsp, err := client.Do(&req)
 	if err != nil {
 		return HdfsJsonData{}, err
